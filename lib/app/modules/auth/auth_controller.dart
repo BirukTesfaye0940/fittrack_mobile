@@ -48,7 +48,7 @@ class AuthController extends GetxController {
         loginIdentifierController.text.trim(),
         loginPasswordController.text,
       );
-      Get.offAllNamed(Routes.HOME);
+      Get.offAllNamed(Routes.EXERCISES);
     } on ApiException catch (e) {
       Get.snackbar(
         "Login Failed",
@@ -107,7 +107,7 @@ class AuthController extends GetxController {
         registerEmailController.text.trim(),
         registerPasswordController.text,
       );
-      Get.offAllNamed(Routes.HOME);
+      Get.offAllNamed(Routes.EXERCISES);
     } on ApiException catch (e) {
       Get.snackbar(
         "Registration Failed",
