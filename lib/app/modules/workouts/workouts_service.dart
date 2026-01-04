@@ -9,30 +9,37 @@ class WorkoutsService {
   Future<List<Workout>> getWorkouts({int limit = 10, int skip = 0}) async {
     final response = await _client.dio.get(
       '/workouts/',
-      queryParameters: {"limit": limit, "skip": skip},
+      queryParameters: {'limit': limit, 'skip': skip},
     );
     return (response.data as List).map((e) => Workout.fromJson(e)).toList();
   }
 
-  /// GET /workouts/{id}
-  Future<Workout> getWorkout(String id) async {
+  /// GET /workouts/{id} (Assuming you have a detail endpoint, otherwise we use the list data)
+  /// Note: Based on your API docs, you might need to rely on the list or a specific Get endpoint.
+  /// If the list doesn't return "sets", you might need a separate call.
+  /// For this example, I'll assume fetching the list includes sets or you have a detail endpoint.
+  Future<Workout> getWorkoutDetail(String id) async {
+    // If your backend doesn't have a specific GET /workouts/{id},
+    // you might need to rely on the data passed from the list or implement that endpoint.
+    // I will assume standard REST practice here:
     final response = await _client.dio.get('/workouts/$id');
     return Workout.fromJson(response.data);
   }
 
   /// POST /workouts/
-  Future<Workout> createWorkout(
-    DateTime date, {
+  Future<Workout> createWorkout({
+    required DateTime date,
+    int durationMinutes = 0,
     String? mood,
     String? notes,
   }) async {
     final response = await _client.dio.post(
-      '/workouts/', // Ensure no trailing slash if backend dislikes it, or keep consistent
+      '/workouts/',
       data: {
-        "date": date.toIso8601String().split('T').first,
-        "mood": mood,
-        "notes": notes,
-        "duration_minutes": 0, // Default
+        "date": date.toIso8601String().split('T')[0], // YYYY-MM-DD
+        "duration_minutes": durationMinutes,
+        "mood": mood ?? "Neutral",
+        "notes": notes ?? "",
       },
     );
     return Workout.fromJson(response.data);
@@ -43,16 +50,16 @@ class WorkoutsService {
     String workoutId,
     String exerciseId,
     int reps,
-    double weight, {
-    double? rpe,
-  }) async {
+    double weight,
+    int? rpe,
+  ) async {
     final response = await _client.dio.post(
       '/workout-sets/workouts/$workoutId/sets',
       data: {
         "exercise_id": exerciseId,
         "reps": reps,
         "weight": weight,
-        "rpe": rpe,
+        "rpe": rpe ?? 0,
       },
     );
     return WorkoutSet.fromJson(response.data);
@@ -64,7 +71,12 @@ class WorkoutsService {
       '/ai/workouts/log',
       data: {"text": text},
     );
-    // Returns { "workout_id": "...", "status": "...", ... }
+    // Returns the created workout ID
     return response.data['workout_id'];
+  }
+
+  /// DELETE /workouts/{id}
+  Future<void> deleteWorkout(String id) async {
+    await _client.dio.delete('/workouts/$id');
   }
 }

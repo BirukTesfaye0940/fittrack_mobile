@@ -8,7 +8,7 @@ import 'package:fittrack_mobile/app/modules/exercises/exercises_page.dart';
 import 'package:fittrack_mobile/app/modules/exercises/exercises_binding.dart';
 import 'package:fittrack_mobile/app/modules/workouts/workouts_page.dart';
 import 'package:fittrack_mobile/app/modules/workouts/workout_detail_page.dart';
-import 'package:fittrack_mobile/app/modules/workouts/ai_workout_page.dart';
+import 'package:fittrack_mobile/app/modules/workouts/ai_log_page.dart';
 import 'package:fittrack_mobile/app/modules/workouts/workouts_binding.dart';
 
 class AppPages {
@@ -39,8 +39,8 @@ class AppPages {
       binding: WorkoutsBinding(),
     ),
     GetPage(
-      name: Routes.AI_WORKOUT_LOG,
-      page: () => const AiWorkoutPage(),
+      name: Routes.AI_LOG,
+      page: () => const AiLogPage(),
       binding: WorkoutsBinding(),
     ),
     // Placeholder for Home until we build it

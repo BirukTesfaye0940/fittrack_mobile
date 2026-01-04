@@ -1,114 +1,182 @@
-import 'package:fittrack_mobile/app/data/models/exercise.dart';
-import 'package:fittrack_mobile/app/modules/exercises/exercises_service.dart';
-import 'package:fittrack_mobile/app/data/models/workout.dart';
-
-import 'package:fittrack_mobile/app/modules/workouts/workouts_service.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:fittrack_mobile/app/data/models/workout.dart';
+import 'package:fittrack_mobile/app/modules/workouts/workouts_service.dart';
+import 'package:fittrack_mobile/app/modules/exercises/exercises_controller.dart'; // To pick exercises
+import 'package:fittrack_mobile/app/routes/app_routes.dart';
 
 class WorkoutsController extends GetxController {
   final WorkoutsService _service = WorkoutsService();
-  final ExercisesService _exercisesService = ExercisesService();
 
-  final workouts = <Workout>[].obs;
-  final exercises = <Exercise>[].obs;
-  final isLoading = false.obs;
-  final currentWorkout = Rxn<Workout>();
+  // -- List State --
+  var workouts = <Workout>[].obs;
+  var isLoadingList = true.obs;
+  var isLoadingMore = false.obs;
+  var hasMore = true.obs;
+  var currentSkip = 0;
+  final int pageSize = 10;
+
+  // -- Detail State --
+  var currentWorkout = Rxn<Workout>();
+  var isLoadingDetail = false.obs;
+
+  // -- AI Log State --
+  final aiInputController = TextEditingController();
+  var isAiLoading = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     fetchWorkouts();
-    fetchExercises();
   }
 
-  Future<void> fetchExercises() async {
-    try {
-      final data = await _exercisesService.getExercises();
-      exercises.assignAll(data);
-    } catch (e) {
-      Get.snackbar("Error", "Failed to fetch exercises");
-    }
-  }
-
+  // 1. Fetch List (Initial Load)
   Future<void> fetchWorkouts() async {
-    isLoading.value = true;
     try {
-      final data = await _service.getWorkouts(limit: 50); // Fetch more for now
-      workouts.assignAll(data);
+      isLoadingList.value = true;
+      currentSkip = 0;
+      hasMore.value = true;
+      final result = await _service.getWorkouts(limit: pageSize, skip: 0);
+      workouts.assignAll(result);
+      currentSkip = result.length;
+      hasMore.value = result.length >= pageSize;
     } catch (e) {
-      Get.snackbar("Error", "Failed to fetch workouts: $e");
+      Get.snackbar("Error", "Failed to load workouts");
     } finally {
-      isLoading.value = false;
+      isLoadingList.value = false;
     }
   }
 
-  Future<void> loadWorkoutDetails(String id) async {
-    isLoading.value = true;
+  // 1b. Load More Workouts (Pagination)
+  Future<void> loadMoreWorkouts() async {
+    if (isLoadingMore.value || !hasMore.value) return;
+
     try {
-      final workout = await _service.getWorkout(id);
-      currentWorkout.value = workout;
+      isLoadingMore.value = true;
+      final result = await _service.getWorkouts(
+        limit: pageSize,
+        skip: currentSkip,
+      );
+      if (result.isNotEmpty) {
+        workouts.addAll(result);
+        currentSkip += result.length;
+        hasMore.value = result.length >= pageSize;
+      } else {
+        hasMore.value = false;
+      }
     } catch (e) {
-      Get.snackbar("Error", "Failed to load details: $e");
+      Get.snackbar("Error", "Failed to load more workouts");
     } finally {
-      isLoading.value = false;
+      isLoadingMore.value = false;
     }
   }
 
-  Future<void> createManualWorkout() async {
-    isLoading.value = true;
+  // 2. Load Detail
+  Future<void> loadWorkoutDetail(String id) async {
     try {
-      final workout = await _service.createWorkout(DateTime.now());
-      workouts.insert(0, workout);
-      currentWorkout.value = workout;
-      // Navigate to detail
-      Get.toNamed('/workout-detail', arguments: workout.id);
+      isLoadingDetail.value = true;
+      final result = await _service.getWorkoutDetail(id);
+      currentWorkout.value = result;
     } catch (e) {
-      Get.snackbar("Error", "Failed to create workout: $e");
+      Get.snackbar("Error", "Failed to load workout details");
     } finally {
-      isLoading.value = false;
+      isLoadingDetail.value = false;
     }
   }
 
+  // 3. Add Manual Set
   Future<void> addSet(
     String exerciseId,
-    int reps,
-    double weight, {
-    double? rpe,
-  }) async {
+    String reps,
+    String weight,
+    String rpe,
+  ) async {
     if (currentWorkout.value == null) return;
 
     try {
       await _service.addSet(
         currentWorkout.value!.id,
         exerciseId,
-        reps,
-        weight,
-        rpe: rpe,
+        int.parse(reps),
+        double.parse(weight),
+        int.tryParse(rpe),
       );
-      // Refresh details
-      await loadWorkoutDetails(currentWorkout.value!.id);
-      Get.back(); // Close modal
-      Get.snackbar("Success", "Set added successfully");
+
+      // Refresh the detail view to show the new set
+      await loadWorkoutDetail(currentWorkout.value!.id);
+      Get.back(); // Close bottom sheet
+      Get.snackbar("Success", "Set added!");
     } catch (e) {
-      Get.snackbar("Error", "Failed to add set: $e");
+      Get.snackbar("Error", "Failed to add set");
     }
   }
 
-  Future<void> logWorkoutAI(String text) async {
-    isLoading.value = true;
+  // 4. AI Log
+  Future<void> logWorkoutAI() async {
+    if (aiInputController.text.isEmpty) {
+      Get.snackbar("Error", "Please enter workout details");
+      return;
+    }
+
     try {
-      final workoutId = await _service.logWorkoutAI(text);
-      Get.snackbar("Success", "Workout logged successfully!");
-      // Load details before navigating
-      await loadWorkoutDetails(workoutId);
-      // Navigate to detail
-      Get.offNamed('/workout-detail', arguments: workoutId);
+      isAiLoading.value = true;
+      final workoutId = await _service.logWorkoutAI(aiInputController.text);
+
+      aiInputController.clear();
+      Get.snackbar("Success", "Workout logged by AI!");
+
+      // Navigate to the newly created workout
+      await loadWorkoutDetail(workoutId);
+      Get.offNamed(Routes.WORKOUT_DETAIL, arguments: workoutId);
+
       // Refresh list in background
       fetchWorkouts();
     } catch (e) {
-      Get.snackbar("Error", "AI Logging failed: $e");
+      Get.snackbar("Error", "AI Logging failed. Try again.");
     } finally {
-      isLoading.value = false;
+      isAiLoading.value = false;
+    }
+  }
+
+  // 5. Create Workout
+  Future<void> createWorkout({
+    required DateTime date,
+    int durationMinutes = 0,
+    String? mood,
+    String? notes,
+  }) async {
+    try {
+      isLoadingList.value = true;
+      final newWorkout = await _service.createWorkout(
+        date: date,
+        durationMinutes: durationMinutes,
+        mood: mood,
+        notes: notes,
+      );
+
+      // Add to list and refresh
+      await fetchWorkouts();
+
+      // Navigate to detail
+      await loadWorkoutDetail(newWorkout.id);
+      Get.toNamed(Routes.WORKOUT_DETAIL);
+
+      Get.snackbar("Success", "Workout created!");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to create workout");
+    } finally {
+      isLoadingList.value = false;
+    }
+  }
+
+  // 6. Delete Workout
+  Future<void> deleteWorkout(String id) async {
+    try {
+      await _service.deleteWorkout(id);
+      workouts.removeWhere((workout) => workout.id == id);
+      Get.snackbar("Success", "Workout deleted!");
+    } catch (e) {
+      Get.snackbar("Error", "Failed to delete workout");
     }
   }
 }

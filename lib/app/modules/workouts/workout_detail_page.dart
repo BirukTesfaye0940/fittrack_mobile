@@ -1,120 +1,109 @@
 import 'package:flutter/material.dart';
-import 'package:fittrack_mobile/app/modules/workouts/workouts_controller.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:fittrack_mobile/app/modules/workouts/workouts_controller.dart';
+import 'package:fittrack_mobile/app/modules/exercises/exercises_controller.dart';
 
 class WorkoutDetailPage extends GetView<WorkoutsController> {
-  const WorkoutDetailPage({Key? key}) : super(key: key);
+  const WorkoutDetailPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Get ID from arguments
-    final String workoutId = Get.arguments ?? '';
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Workout Details')),
+      appBar: AppBar(title: const Text("Workout Details")),
       body: Obx(() {
-        if (controller.isLoading.value) {
+        if (controller.isLoadingDetail.value ||
+            controller.currentWorkout.value == null) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final workout = controller.currentWorkout.value;
-        if (workout == null) {
-          return const Center(child: Text("Workout not found"));
-        }
+        final workout = controller.currentWorkout.value!;
 
         return Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Metadata Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              color: Colors.grey[100],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        DateFormat.yMMMMd().format(workout.date),
-                        style: Theme.of(context).textTheme.headlineSmall,
+                        "Date: ${workout.date.toString().split(' ')[0]}",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(height: 8),
-                      if (workout.mood != null) Text("Mood: ${workout.mood}"),
-                      if (workout.notes != null)
-                        Text("Notes: ${workout.notes}"),
-                      const SizedBox(height: 8),
-                      Text("Sets: ${workout.workoutSets.length}"),
+                      Text(
+                        "Duration: ${workout.durationMinutes ?? 0} min",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  Text("Mood: ${workout.mood ?? 'Neutral'}"),
+                  if (workout.notes != null && workout.notes!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Notes:",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      workout.notes!,
+                      style: TextStyle(color: Colors.grey[800]),
+                    ),
+                  ],
+                ],
               ),
             ),
 
             // Sets List
             Expanded(
               child: ListView.builder(
-                itemCount: workout.workoutSets.length,
+                itemCount: workout.sets.length,
                 itemBuilder: (context, index) {
-                  final set = workout.workoutSets[index];
-                  // If we don't have exercise name from backend, we might try to find it in controller.exercises
-                  // assuming we fetched them. Ideally backend includes it.
-                  String exerciseName = set.exerciseName ?? "Unknown Exercise";
-                  if (set.exerciseName == null &&
-                      controller.exercises.isNotEmpty) {
-                    final ex = controller.exercises.firstWhereOrNull(
-                      (e) => e.id == set.exerciseId,
-                    );
-                    if (ex != null) exerciseName = ex.name;
-                  }
-
+                  final set = workout.sets[index];
                   return ListTile(
-                    title: Text(exerciseName),
+                    title: Text(
+                      set.exerciseName ?? "Exercise",
+                    ), // Needs backend map or local lookup
                     subtitle: Text(
-                      "${set.reps} reps @ ${set.weight} kg ${set.rpe != null ? '(RPE: ${set.rpe})' : ''}",
+                      "${set.reps} reps @ ${set.weight}kg (RPE: ${set.rpe ?? '-'})",
+                    ),
+                    leading: Text(
+                      "#${index + 1}",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   );
                 },
               ),
             ),
-
-            // Add Set Button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _showAddSetModal(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text("Add Set"),
-                ),
-              ),
-            ),
           ],
         );
       }),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddSetSheet(context),
+        label: const Text("Add Set"),
+        icon: const Icon(Icons.add),
+      ),
     );
   }
 
-  void _showAddSetModal(BuildContext context) {
-    final repsController = TextEditingController();
-    final weightController = TextEditingController();
-    final rpeController = TextEditingController();
+  void _showAddSetSheet(BuildContext context) {
+    final exercisesCtrl = Get.find<ExercisesController>();
+    final repsCtrl = TextEditingController();
+    final weightCtrl = TextEditingController();
+    final rpeCtrl = TextEditingController();
     String? selectedExerciseId;
 
-    if (controller.exercises.isNotEmpty) {
-      selectedExerciseId = controller.exercises.first.id;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          left: 16,
-          right: 16,
-          top: 16,
-        ),
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(24),
+        color: Colors.white,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -124,67 +113,57 @@ class WorkoutDetailPage extends GetView<WorkoutsController> {
             ),
             const SizedBox(height: 16),
 
-            // Exercise Dropdown
+            // Dropdown for Exercises (Requires ExercisesController to have data)
             Obx(
               () => DropdownButtonFormField<String>(
-                value: selectedExerciseId,
-                items: controller.exercises
-                    .map(
-                      (e) => DropdownMenuItem(value: e.id, child: Text(e.name)),
-                    )
-                    .toList(),
+                hint: const Text("Select Exercise"),
+                items: exercisesCtrl.exercises.map((e) {
+                  return DropdownMenuItem(value: e.id, child: Text(e.name));
+                }).toList(),
                 onChanged: (val) => selectedExerciseId = val,
-                decoration: const InputDecoration(labelText: "Exercise"),
               ),
             ),
 
-            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
                   child: TextField(
-                    controller: repsController,
-                    keyboardType: TextInputType.number,
+                    controller: repsCtrl,
                     decoration: const InputDecoration(labelText: "Reps"),
+                    keyboardType: TextInputType.number,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
-                    controller: weightController,
-                    keyboardType: TextInputType.number,
+                    controller: weightCtrl,
                     decoration: const InputDecoration(labelText: "Weight (kg)"),
+                    keyboardType: TextInputType.number,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
             TextField(
-              controller: rpeController,
+              controller: rpeCtrl,
+              decoration: const InputDecoration(labelText: "RPE (1-10)"),
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "RPE (Optional)"),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (selectedExerciseId == null) return;
-                  final reps = int.tryParse(repsController.text);
-                  final weight = double.tryParse(weightController.text);
-                  final rpe = double.tryParse(rpeController.text);
 
-                  if (reps != null && weight != null) {
-                    controller.addSet(
-                      selectedExerciseId!,
-                      reps,
-                      weight,
-                      rpe: rpe,
-                    );
-                  }
-                },
-                child: const Text("Add"),
-              ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedExerciseId != null &&
+                    repsCtrl.text.isNotEmpty &&
+                    weightCtrl.text.isNotEmpty) {
+                  controller.addSet(
+                    selectedExerciseId!,
+                    repsCtrl.text,
+                    weightCtrl.text,
+                    rpeCtrl.text,
+                  );
+                }
+              },
+              child: const Text("Save Set"),
             ),
           ],
         ),

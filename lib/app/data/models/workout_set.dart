@@ -1,42 +1,31 @@
 class WorkoutSet {
   final String id;
-  final String workoutId;
   final String exerciseId;
+  final String?
+  exerciseName; // Often useful if backend provides it, or we join locally
   final int reps;
   final double weight;
-  final double? rpe;
-  final String?
-  exerciseName; // Optional, might be populated manually or via join
+  final int? rpe;
 
   WorkoutSet({
     required this.id,
-    required this.workoutId,
     required this.exerciseId,
+    this.exerciseName,
     required this.reps,
     required this.weight,
     this.rpe,
-    this.exerciseName,
   });
 
   factory WorkoutSet.fromJson(Map<String, dynamic> json) {
     return WorkoutSet(
       id: json['id'],
-      workoutId: json['workout_id'],
       exerciseId: json['exercise_id'],
+      // If your backend nests exercise details inside the set response, handle it here.
+      // Otherwise, you might need to lookup the name from your ExercisesController.
+      exerciseName: json['exercise']?['name'] ?? 'Unknown Exercise',
       reps: json['reps'],
       weight: (json['weight'] as num).toDouble(),
-      rpe: json['rpe'] != null ? (json['rpe'] as num).toDouble() : null,
-      exerciseName:
-          json['exercise_name'], // Make sure backend sends this or we fetch it
+      rpe: json['rpe'],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      "exercise_id": exerciseId,
-      "reps": reps,
-      "weight": weight,
-      "rpe": rpe,
-    };
   }
 }
