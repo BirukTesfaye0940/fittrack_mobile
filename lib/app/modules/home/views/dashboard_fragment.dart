@@ -30,29 +30,53 @@ class DashboardFragment extends GetView<HomeController> {
 
             // AI Coach Insight Card
             _buildSectionHeader("AI Coaching Insight", Icons.auto_awesome),
-            Obx(
-              () => _buildInfoCard(
-                controller.isLoading.value
-                    ? "Analyzing your progress..."
-                    : controller.aiCoachFeedback.value,
+            Obx(() {
+              if (controller.isLoading.value) {
+                return _buildInfoCard(
+                  "Analyzing your progress...",
+                  Colors.deepPurple[50]!,
+                  Colors.deepPurple,
+                );
+              }
+              if (controller.aiCoachError.value.isNotEmpty) {
+                return _buildInfoCard(
+                  "⚠️ ${controller.aiCoachError.value}",
+                  Colors.red[50]!,
+                  Colors.red[900]!,
+                );
+              }
+              return _buildInfoCard(
+                controller.aiCoachFeedback.value,
                 Colors.deepPurple[50]!,
                 Colors.deepPurple,
-              ),
-            ),
+              );
+            }),
 
             const SizedBox(height: 24),
 
             // Weekly Stats Card
             _buildSectionHeader("Weekly Performance", Icons.bar_chart),
-            Obx(
-              () => _buildInfoCard(
-                controller.isLoading.value
-                    ? "Calculating stats..."
-                    : controller.weeklyStats.value,
+            Obx(() {
+              if (controller.isLoading.value) {
+                return _buildInfoCard(
+                  "Calculating stats...",
+                  Colors.blue[50]!,
+                  Colors.blue[800]!,
+                );
+              }
+              if (controller.weeklyStatsError.value.isNotEmpty) {
+                return _buildInfoCard(
+                  "⚠️ ${controller.weeklyStatsError.value}",
+                  Colors.red[50]!,
+                  Colors.red[900]!,
+                );
+              }
+              return _buildInfoCard(
+                controller.weeklyStats.value,
                 Colors.blue[50]!,
                 Colors.blue[800]!,
-              ),
-            ),
+              );
+            }),
 
             const SizedBox(height: 30),
 
