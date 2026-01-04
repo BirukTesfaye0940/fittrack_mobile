@@ -6,6 +6,10 @@ import 'package:fittrack_mobile/app/modules/auth/register_page.dart';
 import 'package:fittrack_mobile/app/modules/auth/auth_binding.dart';
 import 'package:fittrack_mobile/app/modules/exercises/exercises_page.dart';
 import 'package:fittrack_mobile/app/modules/exercises/exercises_binding.dart';
+import 'package:fittrack_mobile/app/modules/workouts/workouts_page.dart';
+import 'package:fittrack_mobile/app/modules/workouts/workout_detail_page.dart';
+import 'package:fittrack_mobile/app/modules/workouts/ai_workout_page.dart';
+import 'package:fittrack_mobile/app/modules/workouts/workouts_binding.dart';
 
 class AppPages {
   static final pages = [
@@ -23,6 +27,21 @@ class AppPages {
       name: Routes.EXERCISES,
       page: () => const ExercisesPage(),
       binding: ExercisesBinding(),
+    ),
+    GetPage(
+      name: Routes.WORKOUTS,
+      page: () => const WorkoutsPage(),
+      binding: WorkoutsBinding(),
+    ),
+    GetPage(
+      name: Routes.WORKOUT_DETAIL,
+      page: () => const WorkoutDetailPage(),
+      binding: WorkoutsBinding(),
+    ),
+    GetPage(
+      name: Routes.AI_WORKOUT_LOG,
+      page: () => const AiWorkoutPage(),
+      binding: WorkoutsBinding(),
     ),
     // Placeholder for Home until we build it
     GetPage(

@@ -27,13 +27,13 @@ class ExercisesService {
 
   /// PATCH /exercises/{id}/
   Future<Exercise> updateExercise(String id, Map<String, dynamic> data) async {
-    final response = await _client.dio.patch('/exercises/$id/', data: data);
+    final response = await _client.dio.patch('/exercises/$id', data: data);
     return Exercise.fromJson(response.data);
   }
 
   /// DELETE /exercises/{id}/
   Future<void> deleteExercise(String id) async {
-    await _client.dio.delete('/exercises/$id/');
+    await _client.dio.delete('/exercises/$id');
   }
 
   /// POST /exercises/{id}/image/
@@ -45,6 +45,6 @@ class ExercisesService {
       "file": await MultipartFile.fromFile(imageFile.path, filename: fileName),
     });
 
-    await _client.dio.post('/exercises/$id/image/', data: formData);
+    await _client.dio.post('/exercises/$id/image', data: formData);
   }
 }
