@@ -10,6 +10,8 @@ import 'package:fittrack_mobile/app/modules/workouts/workouts_page.dart';
 import 'package:fittrack_mobile/app/modules/workouts/workout_detail_page.dart';
 import 'package:fittrack_mobile/app/modules/workouts/ai_log_page.dart';
 import 'package:fittrack_mobile/app/modules/workouts/workouts_binding.dart';
+import 'package:fittrack_mobile/app/modules/home/views/home_view.dart';
+import 'package:fittrack_mobile/app/modules/home/home_binding.dart';
 
 class AppPages {
   static final pages = [
@@ -46,7 +48,8 @@ class AppPages {
     // Placeholder for Home until we build it
     GetPage(
       name: Routes.HOME,
-      page: () => const Scaffold(body: Center(child: Text("Home Screen"))),
+      page: () => const HomeView(),
+      binding: HomeBinding(),
     ),
   ];
 }
